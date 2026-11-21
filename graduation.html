@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Class of 2026 — 3D Graduation Celebration</title>
+  <!-- Load A-Frame 1.6.0 -->
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <!-- Load Tailwind CSS for the HUD Overlay -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & Cinzel for celebratory elegance -->
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
+      background-color: #090612;
+      user-select: none;
+    }
+    .glass-panel {
+      background: rgba(18, 12, 28, 0.72);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 138, 0, 0.35);
+      box-shadow: 0 10px 35px rgba(255, 107, 0, 0.22);
+    }
+    .btn-orange {
+      background: linear-gradient(135deg, #ff6a00 0%, #ff9e00 100%);
+      box-shadow: 0 4px 20px rgba(255, 115, 0, 0.5);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .btn-orange:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 8px 28px rgba(255, 140, 0, 0.75);
+    }
+    .btn-orange:active {
+      transform: translateY(1px) scale(0.98);
+    }
+    .title-font {
+      font-family: 'Cinzel', serif;
+    }
+    /* Hide default A-Frame VR button overlap slightly on mobile */
+    .a-enter-vr {
+      bottom: 20px !important;
+      right: 20px !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Floating Glassmorphism UI Overlay -->
+  <div id="hud-overlay" class="fixed inset-0 pointer-events-none z-20 flex flex-col justify-between p-4 sm:p-6">
+    
+    <!-- Top Header Banner -->
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div class="glass-panel rounded-2xl px-4 py-3 sm:px-6 sm:py-3.5 pointer-events-auto flex items-center gap-3.5">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-orange-500 to-amber-400 flex items-center justify-center text-2xl shadow-lg shadow-orange-500/30">
+          🎓
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-extrabold uppercase tracking-widest text-orange-400">Class of 2026</span>
+            <span class="inline-block w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+          </div>
+          <h1 class="title-font text-lg sm:text-2xl font-black text-white tracking-wide">
+            CONGRATS GRADUATE!
+          </h1>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2.5 pointer-events-auto">
+        <!-- Hidden File Input for Swapping Graduate Photo -->
+        <input type="file" id="photo-upload" accept="image/*" class="hidden" />
+        <button id="swap-photo-btn" class="glass-panel hover:bg-orange-500/20 text-orange-200 hover:text-white font-semibold text-xs sm:text-sm px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-xl transition flex items-center gap-2 cursor-pointer" title="Upload a different photo if needed">
+          <span>🖼️</span>
+          <span class="hidden sm:inline">Swap Photo</span>
+        </button>
+
+        <button id="camera-preset-btn" class="glass-panel hover:bg-orange-500/20 text-amber-200 hover:text-white font-semibold text-xs sm:text-sm px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-xl transition flex items-center gap-2 cursor-pointer" title="Switch Camera Angle">
+          <span>🎥</span>
+          <span class="hidden sm:inline">Stage View</span>
+        </button>
+
+        <button id="celebrate-btn" class="btn-orange text-white font-extrabold text-xs sm:text-sm px-4 py-2.5 sm:px-6 sm:py-3 rounded-xl flex items-center gap-2 cursor-pointer">
+          <span>🎆</span>
+          <span>Launch Fireworks!</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Toast Notification Banner (Replaces alert()) -->
+    <div id="toast-msg" class="self-center glass-panel text-amber-100 text-xs sm:text-sm font-medium px-5 py-2.5 rounded-full opacity-0 transition-opacity duration-300 pointer-events-none">
+      🎉 Fireworks Launched! Click anywhere in the sky for more!
+    </div>
+
+    <!-- Bottom Controls & Instructions -->
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      <div class="glass-panel rounded-2xl px-4 py-2.5 text-xs text-orange-100/90 pointer-events-auto max-w-md">
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <span class="flex items-center gap-1.5"><strong class="text-orange-400">Drag / Touch:</strong> Look Around</span>
+          <span class="flex items-center gap-1.5"><strong class="text-orange-400">WASD / Arrows:</strong> Walk</span>
+          <span class="flex items-center gap-1.5"><strong class="text-amber-400">Click Scene:</strong> Fireworks</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- A-Frame 3D Scene -->
+  <a-scene 
+    id="grad-scene"
+    renderer="antialias: true; colorManagement: true; toneMapping: ACESFilmic; exposure: 1.15"
+    fog="type: exponential; color: #0b0618; density: 0.018"
+    fireworks-controller>
+
+    <!-- Assets Management -->
+    <a-assets timeout="5000">
+      <!-- Graduate Photo (360980.jpg) -->
+      <img id="grad-photo" src="360980.jpg" crossorigin="anonymous" />
+    </a-assets>
+
+    <!-- Custom Procedural Sky & Starfield -->
+    <a-sky color="#090514"></a-sky>
+    <a-entity id="starfield"></a-entity>
+
+    <!-- Ambient & Celebratory Lighting -->
+    <a-light type="ambient" color="#ff9d5c" intensity="0.45"></a-light>
+    <a-light type="hemisphere" color="#ff8c00" groundColor="#140a24" intensity="0.65"></a-light>
+    
+    <!-- Main Stage Key Light -->
+    <a-light type="point" position="0 7 -5" color="#ffaa33" intensity="1.8" distance="25" decay="1.5"></a-light>
+    <!-- Portrait Dedicated Spotlight -->
+    <a-light type="spot" position="0 6.5 -4.5" target="#portrait-frame" angle="35" penumbra="0.6" color="#fff3d6" intensity="2.6"></a-light>
+    <!-- Orange Rim Lights -->
+    <a-light type="point" position="-6 4 -8" color="#ff5500" intensity="1.5" distance="18"></a-light>
+    <a-light type="point" position="6 4 -8" color="#ff5500" intensity="1.5" distance="18"></a-light>
+
+    <!-- Camera Rig with Smooth Movement -->
+    <a-entity id="camera-rig" position="0 1.7 7.5">
+      <a-camera id="main-camera" look-controls="pointerLockEnabled: false" wasd-controls="acceleration: 28">
+        <!-- Subtle Gaze Cursor for Mobile/VR interactions -->
+        <a-cursor 
+          raycaster="objects: .clickable"
+          fuse="false"
+          material="color: #ff9900; shader: flat; opacity: 0.75"
+          geometry="primitive: ring; radiusInner: 0.012; radiusOuter: 0.02">
+        </a-cursor>
+      </a-camera>
+    </a-entity>
+
+    <!-- Venue Floor & Glowing Grid -->
+    <a-entity id="venue-floor">
+      <!-- Midnight Reflective Dance Floor -->
+      <a-circle radius="35" rotation="-90 0 0" position="0 0 0" 
+                material="color: #10091e; metalness: 0.7; roughness: 0.25"></a-circle>
+      
+      <!-- Decorative Gold & Orange Concentric Floor Rings -->
+      <a-ring radius-inner="9.8" radius-outer="10.05" rotation="-90 0 0" position="0 0.01 -4"
+              material="color: #ff7b00; emissive: #ff6200; emissiveIntensity: 0.8; shader: flat"></a-ring>
+      <a-ring radius-inner="14.8" radius-outer="15.0" rotation="-90 0 0" position="0 0.01 -4"
+              material="color: #ffd000; emissive: #ffaa00; emissiveIntensity: 0.5; shader: flat"></a-ring>
+    </a-entity>
+
+    <!-- Grand Orange & Gold Carpet Walkway -->
+    <a-entity id="walkway" position="0 0.02 0.5">
+      <!-- Main Vibrant Orange Carpet -->
+      <a-box width="3.2" height="0.04" depth="13" position="0 0 0"
+             material="color: #e65100; roughness: 0.85"></a-box>
+      <!-- Gold Runner Borders -->
+      <a-box width="0.18" height="0.05" depth="13" position="-1.55 0.005 0"
+             material="color: #ffd54f; metalness: 0.8; roughness: 0.2; emissive: #ff8f00; emissiveIntensity: 0.3"></a-box>
+      <a-box width="0.18" height="0.05" depth="13" position="1.55 0.005 0"
+             material="color: #ffd54f; metalness: 0.8; roughness: 0.2; emissive: #ff8f00; emissiveIntensity: 0.3"></a-box>
+      
+      <!-- Stanchions & Velvet Ropes along Walkway (Generated by JS for clean geometry) -->
+      <a-entity id="walkway-stanchions"></a-entity>
+    </a-entity>
+
+    <!-- ========================================================= -->
+    <!-- GRAND GRADUATION CELEBRATION STAGE & PORTRAIT CENTERPIECE -->
+    <!-- ========================================================= -->
+    <a-entity id="celebration-stage" position="0 0 -7.5">
+      
+      <!-- Two-Tiered Circular & Octagonal Stage Platform -->
+      <a-cylinder radius="5.8" height="0.35" position="0 0.175 0" segments-radial="32"
+                  material="color: #1a102e; metalness: 0.6; roughness: 0.3"></a-cylinder>
+      <a-torus radius="5.8" radius-tubular="0.06" rotation="90 0 0" position="0 0.35 0"
+               material="color: #ff7b00; emissive: #ff6a00; emissiveIntensity: 1.2"></a-torus>
+
+      <a-cylinder radius="4.6" height="0.35" position="0 0.525 -0.3" segments-radial="32"
+                  material="color: #24153d; metalness: 0.65; roughness: 0.25"></a-cylinder>
+      <a-torus radius="4.6" radius-tubular="0.05" rotation="90 0 0" position="0 0.70 -0.3"
+               material="color: #ffca28; emissive: #ffa000; emissiveIntensity: 1.0"></a-torus>
+
+      <!-- Stage Steps -->
+      <a-box width="3.2" height="0.22" depth="0.8" position="0 0.11 5.8" material="color: #2b184a"></a-box>
+      <a-box width="3.2" height="0.03" depth="0.06" position="0 0.22 6.18" material="color: #ff8800; emissive: #ff6600; emissiveIntensity: 1"></a-box>
+
+      <!-- Grand Illuminated Orange & Gold Stage Archway -->
+      <a-entity id="stage-archway" position="0 0.7 -0.8">
+        <!-- Left & Right Golden Pillars -->
+        <a-cylinder radius="0.32" height="6.2" position="-4.1 3.1 0"
+                    material="color: #ffb300; metalness: 0.85; roughness: 0.2"></a-cylinder>
+        <a-cylinder radius="0.32" height="6.2" position="4.1 3.1 0"
+                    material="color: #ffb300; metalness: 0.85; roughness: 0.2"></a-cylinder>
+        
+        <!-- Glowing Orange Neon Spiral/Rings on Pillars -->
+        <a-torus radius="0.42" radius-tubular="0.05" rotation="90 0 0" position="-4.1 1.5 0" material="color: #ff5500; emissive: #ff5500; emissiveIntensity: 1.6"></a-torus>
+        <a-torus radius="0.42" radius-tubular="0.05" rotation="90 0 0" position="-4.1 3.1 0" material="color: #ff5500; emissive: #ff5500; emissiveIntensity: 1.6"></a-torus>
+        <a-torus radius="0.42" radius-tubular="0.05" rotation="90 0 0" position="-4.1 4.7 0" material="color: #ff5500; emissive: #ff5500; emissiveIntensity: 1.6"></a-torus>
+
+        <a-torus radius="0.42" radius-tubular="0.05" rotation="90 0 0" position="4.1 1.5 0" material="color: #ff5500; emissive: #ff5500; emissiveIntensity: 1.6"></a-torus>
+        <a-torus radius="0.42" radius-tubular="0.05" rotation="90 0 0" position="4.1 3.1 0" material="color: #ff5500; emissive: #ff5500; emissiveIntensity: 1.6"></a-torus>
+        <a-torus radius="0.42" radius-tubular="0.05" rotation="90 0 0" position="4.1 4.7 0" material="color: #ff5500; emissive: #ff5500; emissiveIntensity: 1.6"></a-torus>
+
+        <!-- Overhead Curved Arch -->
+        <a-torus radius="4.1" radius-tubular="0.28" arc="180" position="0 6.1 0"
+                 material="color: #ff6d00; metalness: 0.5; roughness: 0.25; emissive: #e65100; emissiveIntensity: 0.45"></a-torus>
+        <a-torus radius="4.42" radius-tubular="0.06" arc="180" position="0 6.1 0"
+                 material="color: #ffd54f; emissive: #ffab00; emissiveIntensity: 1.3"></a-torus>
+        <a-torus radius="3.78" radius-tubular="0.06" arc="180" position="0 6.1 0"
+                 material="color: #ffd54f; emissive: #ffab00; emissiveIntensity: 1.3"></a-torus>
+
+        <!-- 3D Celebratory Banners ("CONGRATS GRAD!" & "CLASS OF 2026") -->
+        <a-entity position="0 7.35 0.2">
+          <!-- Banner Backing Ribbon -->
+          <a-box width="6.8" height="1.05" depth="0.18" material="color: #160c28; metalness: 0.5; roughness: 0.3"></a-box>
+          <a-box width="6.95" height="1.18" depth="0.12" position="0 0 -0.02" material="color: #ff8f00; emissive: #ff6f00; emissiveIntensity: 0.9"></a-box>
+          
+          <a-text value="CONGRATS BOAHEN!" 
+                  align="center" 
+                  width="11" 
+                  color="#ffffff" 
+                  font="exo2bold"
+                  position="0 0.14 0.11"></a-text>
+          <a-text value="★ CLASS OF 2026 ★" 
+                  align="center" 
+                  width="7.5" 
+                  color="#ffca28" 
+                  font="exo2bold"
+                  position="0 -0.26 0.11"></a-text>
+        </a-entity>
+
+        <!-- ===================================================== -->
+        <!-- CENTERPIECE GRADUATE PORTRAIT FRAME (`360980.jpg`)    -->
+        <!-- ===================================================== -->
+        <a-entity id="portrait-frame" position="0 3.05 0.25" class="clickable">
+          <!-- Glowing Back Aura Halo -->
+          <a-plane width="3.5" height="4.4" position="0 0 -0.15"
+                   material="color: #ff6a00; emissive: #ff5500; emissiveIntensity: 1.3; shader: flat"></a-plane>
+          
+          <!-- Outer Gold Ornate Frame -->
+          <a-box width="3.25" height="4.15" depth="0.22" position="0 0 -0.04"
+                 material="color: #ffc107; metalness: 0.85; roughness: 0.18"></a-box>
+          
+          <!-- Inner Dark Velvet Matting -->
+          <a-box width="2.92" height="3.82" depth="0.24" position="0 0 -0.02"
+                 material="color: #120922; roughness: 0.7"></a-box>
+
+          <!-- Graduate Photo Plane (Aspect Ratio matching 3:4 portrait) -->
+          <a-plane id="portrait-image-plane"
+                   width="2.68" 
+                   height="3.56" 
+                   position="0 0.05 0.11"
+                   material="src: #grad-photo; shader: flat; side: front"></a-plane>
+
+          <!-- Bottom Nameplate Plaque -->
+          <a-box width="2.4" height="0.38" depth="0.28" position="0 -1.98 0.05"
+                 material="color: #ff6f00; metalness: 0.6; roughness: 0.25"></a-box>
+          <a-text value="THE GRADUATE • 2026" 
+                  align="center" 
+                  width="4.4" 
+                  color="#ffffff" 
+                  font="exo2bold"
+                  position="0 -1.98 0.20"></a-text>
+
+          <!-- Decorative 3D Graduation Cap Perched on Top-Right Corner of Frame! -->
+          <a-entity position="1.45 2.02 0.18" rotation="0 0 -18">
+            <!-- Cap Base -->
+            <a-cylinder radius="0.32" height="0.22" position="0 0 0" material="color: #14101d; roughness: 0.4"></a-cylinder>
+            <!-- Mortarboard Top -->
+            <a-box width="0.82" height="0.05" depth="0.82" position="0 0.12 0" rotation="0 45 0" material="color: #1c1629; roughness: 0.35"></a-box>
+            <!-- Gold Button & Tassel -->
+            <a-sphere radius="0.045" position="0 0.16 0" material="color: #ffd54f; metalness: 0.9"></a-sphere>
+            <a-cylinder radius="0.015" height="0.42" position="0.28 0.02 0.28" rotation="0 0 -22" material="color: #ff9100; emissive: #ff6d00; emissiveIntensity: 0.5"></a-cylinder>
+          </a-entity>
+        </a-entity>
+
+      </a-entity>
+
+      <!-- ===================================================== -->
+      <!-- CELEBRATORY GRADUATION CAKE & GIFT TABLE (Stage Right) -->
+      <!-- ===================================================== -->
+      <a-entity id="cake-table" position="2.8 0.7 1.3" rotation="0 -28 0">
+        <!-- Elegant Gold-Trimmed Table -->
+        <a-cylinder radius="0.95" height="0.08" position="0 0.95 0" material="color: #ffffff; roughness: 0.2"></a-cylinder>
+        <a-torus radius="0.95" radius-tubular="0.03" rotation="90 0 0" position="0 0.95 0" material="color: #ff8f00; emissive: #ff6f00; emissiveIntensity: 0.8"></a-torus>
+        <a-cylinder radius="0.12" height="0.95" position="0 0.475 0" material="color: #ffb300; metalness: 0.85"></a-cylinder>
+        <a-cylinder radius="0.55" height="0.06" position="0 0.03 0" material="color: #ffb300; metalness: 0.85"></a-cylinder>
+
+        <!-- 3-Tier Orange, White & Gold Graduation Cake -->
+        <a-entity position="0 0.99 0">
+          <!-- Bottom Tier (Vibrant Orange) -->
+          <a-cylinder radius="0.48" height="0.28" position="0 0.14 0" material="color: #ff6d00; roughness: 0.4"></a-cylinder>
+          <a-torus radius="0.485" radius-tubular="0.02" rotation="90 0 0" position="0 0.02 0" material="color: #ffd54f; metalness: 0.8"></a-torus>
+          <!-- Middle Tier (Crisp White) -->
+          <a-cylinder radius="0.35" height="0.25" position="0 0.405 0" material="color: #fff8e1; roughness: 0.35"></a-cylinder>
+          <a-torus radius="0.355" radius-tubular="0.018" rotation="90 0 0" position="0 0.29 0" material="color: #ff8f00"></a-torus>
+          <!-- Top Tier (Gold) -->
+          <a-cylinder radius="0.22" height="0.22" position="0 0.64 0" material="color: #ffca28; metalness: 0.6; roughness: 0.25"></a-cylinder>
+          
+          <!-- Cake Topper: Mini Mortarboard & Glowing '2026' -->
+          <a-box width="0.32" height="0.025" depth="0.32" position="0 0.80 0" rotation="0 45 0" material="color: #160f24"></a-box>
+          <a-cylinder radius="0.11" height="0.08" position="0 0.76 0" material="color: #160f24"></a-cylinder>
+          <a-sphere radius="0.03" position="0 0.86 0" material="color: #ff6d00; emissive: #ff6d00; emissiveIntensity: 1.5"></a-sphere>
+        </a-entity>
+      </a-entity>
+
+      <!-- ===================================================== -->
+      <!-- STACKED ORANGE & GOLD GIFT BOXES (Stage Left)          -->
+      <!-- ===================================================== -->
+      <a-entity id="gift-boxes" position="-2.8 0.7 1.3" rotation="0 25 0">
+        <!-- Large Orange Box -->
+        <a-box width="0.85" height="0.65" depth="0.85" position="0 0.325 0" material="color: #ff6d00; roughness: 0.4"></a-box>
+        <a-box width="0.87" height="0.66" depth="0.14" position="0 0.325 0" material="color: #ffd54f; metalness: 0.7"></a-box>
+        <a-box width="0.14" height="0.66" depth="0.87" position="0 0.325 0" material="color: #ffd54f; metalness: 0.7"></a-box>
+        
+        <!-- Medium Dark Purple/Midnight Box with Orange Ribbon -->
+        <a-box width="0.6" height="0.5" depth="0.6" position="0.05 0.9 0.05" rotation="0 18 0" material="color: #261447; roughness: 0.35"></a-box>
+        <a-box width="0.62" height="0.51" depth="0.11" position="0.05 0.9 0.05" rotation="0 18 0" material="color: #ff9100; emissive: #ff6d00; emissiveIntensity: 0.4"></a-box>
+
+        <!-- Rolled Diploma Scroll with Orange Ribbon -->
+        <a-entity position="0.72 0.14 0.35" rotation="0 -35 90">
+          <a-cylinder radius="0.09" height="0.75" material="color: #fffde7; roughness: 0.5"></a-cylinder>
+          <a-cylinder radius="0.096" height="0.12" material="color: #ff6d00; emissive: #ff5500; emissiveIntensity: 0.4"></a-cylinder>
+        </a-entity>
+      </a-entity>
+
+    </a-entity>
+
+    <!-- Dynamic Procedural Containers (Populated via JS) -->
+    <a-entity id="floating-caps-container"></a-entity>
+    <a-entity id="balloons-container"></a-entity>
+    <a-entity id="confetti-container"></a-entity>
+    <a-entity id="fireworks-container"></a-entity>
+
+  </a-scene>
+
+  <script>
+    /**
+     * Fallback texture generator in case local '360980.jpg' cannot be loaded
+     * (e.g., if opened standalone without the file in the same directory).
+     */
+    (function setupPhotoFallbackAndSwap() {
+      const gradImg = document.getElementById('grad-photo');
+      const portraitPlane = document.getElementById('portrait-image-plane');
+      const fileInput = document.getElementById('photo-upload');
+      const swapBtn = document.getElementById('swap-photo-btn');
+
+      function applyFallbackCanvas() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 600;
+        canvas.height = 800;
+        const ctx = canvas.getContext('2d');
+
+        // Rich orange & midnight gradient background
+        const grad = ctx.createLinearGradient(0, 0, 600, 800);
+        grad.addColorStop(0, '#ff6a00');
+        grad.addColorStop(0.5, '#e65100');
+        grad.addColorStop(1, '#1a0b2e');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 600, 800);
+
+        // Decorative border
+        ctx.strokeStyle = '#ffd54f';
+        ctx.lineWidth = 16;
+        ctx.strokeRect(24, 24, 552, 752);
+
+        // Graduation Cap Icon & Text
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 120px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🎓', 300, 310);
+
+        ctx.font = 'bold 48px sans-serif';
+        ctx.fillText('CLASS OF 2026', 300, 420);
+
+        ctx.fillStyle = '#ffe082';
+        ctx.font = 'bold 34px sans-serif';
+        ctx.fillText('CONGRATS GRAD!', 300, 480);
+
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.font = '24px sans-serif';
+        ctx.fillText('Click "Swap Photo" in top bar', 300, 620);
+        ctx.fillText('to upload graduate portrait', 300, 655);
+
+        gradImg.src = canvas.toDataURL('image/png');
+      }
+
+      gradImg.addEventListener('error', () => {
+        console.warn('360980.jpg not found locally; loading celebratory fallback graphic.');
+        applyFallbackCanvas();
+      });
+
+      // Allow user to upload any photo dynamically
+      swapBtn.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          gradImg.src = ev.target.result;
+          // Refresh material texture on A-Frame plane
+          if (portraitPlane && portraitPlane.getObject3D('mesh')) {
+            const loader = new THREE.TextureLoader();
+            loader.load(ev.target.result, (tex) => {
+              tex.colorSpace = THREE.SRGBColorSpace;
+              portraitPlane.getObject3D('mesh').material.map = tex;
+              portraitPlane.getObject3D('mesh').material.needsUpdate = true;
+            });
+          }
+          showToast('📸 Graduate portrait updated!');
+        };
+        reader.readAsDataURL(file);
+      });
+    })();
+
+    /**
+     * Toast notification helper (replaces alert())
+     */
+    let toastTimer = null;
+    function showToast(message) {
+      const toast = document.getElementById('toast-msg');
+      if (!toast) return;
+      toast.textContent = message;
+      toast.style.opacity = '1';
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.style.opacity = '0';
+      }, 2800);
+    }
+
+    /**
+     * Custom A-Frame Component: Bobbing & Rotating 3D Graduation Caps
+     */
+    AFRAME.registerComponent('floating-cap', {
+      schema: {
+        speed: { type: 'number', default: 1.5 },
+        amplitude: { type: 'number', default: 0.35 },
+        rotSpeed: { type: 'number', default: 25 },
+        phase: { type: 'number', default: 0 }
+      },
+      init: function () {
+        this.baseY = this.el.object3D.position.y;
+      },
+      tick: function (time, timeDelta) {
+        const t = time * 0.001 * this.data.speed + this.data.phase;
+        this.el.object3D.position.y = this.baseY + Math.sin(t) * this.data.amplitude;
+        this.el.object3D.rotation.y += THREE.MathUtils.degToRad(this.data.rotSpeed) * (timeDelta * 0.001);
+        this.el.object3D.rotation.z = Math.sin(t * 0.7) * 0.12;
+      }
+    });
+
+    /**
+     * Custom A-Frame Component: Gentle Balloon Sway
+     */
+    AFRAME.registerComponent('balloon-sway', {
+      schema: {
+        phase: { type: 'number', default: 0 }
+      },
+      init: function () {
+        this.baseY = this.el.object3D.position.y;
+        this.baseX = this.el.object3D.position.x;
+      },
+      tick: function (time) {
+        const t = time * 0.0012 + this.data.phase;
+        this.el.object3D.position.y = this.baseY + Math.sin(t) * 0.25;
+        this.el.object3D.position.x = this.baseX + Math.cos(t * 0.8) * 0.12;
+        this.el.object3D.rotation.z = Math.sin(t * 0.9) * 0.08;
+      }
+    });
+
+    /**
+     * Custom A-Frame Component: Continuous Falling 3D Confetti System (InstancedMesh for 60fps performance)
+     */
+    AFRAME.registerComponent('confetti-rain', {
+      init: function () {
+        this.count = 450;
+        const geometry = new THREE.PlaneGeometry(0.14, 0.24);
+        const material = new THREE.MeshBasicMaterial({
+          side: THREE.DoubleSide,
+          vertexColors: false
+        });
+
+        this.mesh = new THREE.InstancedMesh(geometry, material, this.count);
+        const palette = [
+          new THREE.Color('#ff6a00'), // Vibrant Orange
+          new THREE.Color('#ff9e00'), // Amber Orange
+          new THREE.Color('#ffd54f'), // Bright Gold
+          new THREE.Color('#ffffff'), // Pure White
+          new THREE.Color('#ff3d00')  // Deep Tangerine
+        ];
+
+        this.particles = [];
+        const dummy = new THREE.Object3D();
+
+        for (let i = 0; i < this.count; i++) {
+          const p = {
+            x: (Math.random() - 0.5) * 26,
+            y: Math.random() * 14 + 0.5,
+            z: (Math.random() - 0.5) * 24 - 2,
+            fallSpeed: 0.9 + Math.random() * 1.4,
+            swaySpeed: 1.5 + Math.random() * 2.5,
+            swayRadius: 0.3 + Math.random() * 0.6,
+            rotX: Math.random() * Math.PI * 2,
+            rotY: Math.random() * Math.PI * 2,
+            rotZ: Math.random() * Math.PI * 2,
+            rotSpeedX: (Math.random() - 0.5) * 5,
+            rotSpeedY: (Math.random() - 0.5) * 5,
+            phase: Math.random() * Math.PI * 2
+          };
+          this.particles.push(p);
+          this.mesh.setColorAt(i, palette[i % palette.length]);
+
+          dummy.position.set(p.x, p.y, p.z);
+          dummy.rotation.set(p.rotX, p.rotY, p.rotZ);
+          dummy.updateMatrix();
+          this.mesh.setMatrixAt(i, dummy.matrix);
+        }
+
+        this.mesh.instanceColor.needsUpdate = true;
+        this.el.setObject3D('mesh', this.mesh);
+        this.dummy = dummy;
+      },
+      tick: function (time, timeDelta) {
+        const dt = Math.min(timeDelta * 0.001, 0.05);
+        const t = time * 0.001;
+
+        for (let i = 0; i < this.count; i++) {
+          const p = this.particles[i];
+          p.y -= p.fallSpeed * dt;
+          if (p.y < 0.05) {
+            p.y = 14.5;
+            p.x = (Math.random() - 0.5) * 26;
+            p.z = (Math.random() - 0.5) * 24 - 2;
+          }
+
+          p.rotX += p.rotSpeedX * dt;
+          p.rotY += p.rotSpeedY * dt;
+
+          const curX = p.x + Math.sin(t * p.swaySpeed + p.phase) * p.swayRadius;
+          const curZ = p.z + Math.cos(t * p.swaySpeed + p.phase) * p.swayRadius;
+
+          this.dummy.position.set(curX, p.y, curZ);
+          this.dummy.rotation.set(p.rotX, p.rotY, p.rotZ);
+          this.dummy.updateMatrix();
+          this.mesh.setMatrixAt(i, this.dummy.matrix);
+        }
+        this.mesh.instanceMatrix.needsUpdate = true;
+      }
+    });
+
+    /**
+     * Custom A-Frame Component: Interactive 3D Fireworks & Confetti Bursts
+     */
+    AFRAME.registerComponent('fireworks-controller', {
+      init: function () {
+        this.bursts = [];
+        this.colors = [0xff6a00, 0xffaa00, 0xffd54f, 0xffffff, 0xff4500];
+        this.group = new THREE.Group();
+        this.el.object3D.add(this.group);
+
+        // Launch an automatic celebratory volley shortly after scene loads
+        setTimeout(() => this.launchVolley(), 900);
+      },
+      spawnFirework: function (x, y, z) {
+        const particleCount = 65;
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        const velocities = [];
+        const baseColor = new THREE.Color(this.colors[Math.floor(Math.random() * this.colors.length)]);
+
+        for (let i = 0; i < particleCount; i++) {
+          positions[i * 3] = x;
+          positions[i * 3 + 1] = y;
+          positions[i * 3 + 2] = z;
+
+          // Spherical explosion velocity
+          const theta = Math.random() * Math.PI * 2;
+          const phi = Math.acos((Math.random() * 2) - 1);
+          const speed = 2.8 + Math.random() * 4.5;
+
+          velocities.push({
+            vx: Math.sin(phi) * Math.cos(theta) * speed,
+            vy: Math.cos(phi) * speed + 1.2,
+            vz: Math.sin(phi) * Math.sin(theta) * speed
+          });
+        }
+
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const material = new THREE.PointsMaterial({
+          color: baseColor,
+          size: 0.26,
+          transparent: true,
+          opacity: 1.0,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false
+        });
+
+        const points = new THREE.Points(geometry, material);
+        this.group.add(points);
+
+        this.bursts.push({
+          points,
+          velocities,
+          age: 0,
+          maxAge: 1.65
+        });
+      },
+      launchVolley: function () {
+        const spots = [
+          [-4.5, 7.2, -8.5],
+          [4.5, 7.5, -8.5],
+          [0, 8.8, -9.2],
+          [-6.5, 6.2, -5.0],
+          [6.5, 6.4, -5.0]
+        ];
+        spots.forEach((pos, idx) => {
+          setTimeout(() => {
+            this.spawnFirework(
+              pos[0] + (Math.random() - 0.5) * 1.5,
+              pos[1] + (Math.random() - 0.5) * 1.0,
+              pos[2] + (Math.random() - 0.5) * 1.5
+            );
+          }, idx * 220);
+        });
+      },
+      tick: function (time, timeDelta) {
+        const dt = Math.min(timeDelta * 0.001, 0.05);
+
+        for (let i = this.bursts.length - 1; i >= 0; i--) {
+          const b = this.bursts[i];
+          b.age += dt;
+
+          if (b.age >= b.maxAge) {
+            this.group.remove(b.points);
+            b.points.geometry.dispose();
+            b.points.material.dispose();
+            this.bursts.splice(i, 1);
+            continue;
+          }
+
+          const posAttr = b.points.geometry.attributes.position;
+          const arr = posAttr.array;
+
+          for (let j = 0; j < b.velocities.length; j++) {
+            const v = b.velocities[j];
+            v.vy -= 4.2 * dt; // Gravity
+            v.vx *= 0.97;     // Air drag
+            v.vz *= 0.97;
+
+            arr[j * 3] += v.vx * dt;
+            arr[j * 3 + 1] += v.vy * dt;
+            arr[j * 3 + 2] += v.vz * dt;
+          }
+
+          posAttr.needsUpdate = true;
+          b.points.material.opacity = 1.0 - (b.age / b.maxAge);
+        }
+      }
+    });
+
+    /**
+     * Populate Scene Decorations on Load
+     */
+    window.addEventListener('DOMContentLoaded', () => {
+      const sceneEl = document.getElementById('grad-scene');
+
+      // 1. Populate Starfield
+      const starfield = document.getElementById('starfield');
+      for (let i = 0; i < 160; i++) {
+        const star = document.createElement('a-sphere');
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.random() * Math.PI * 0.48; // Upper hemisphere
+        const r = 42 + Math.random() * 10;
+        const x = r * Math.sin(phi) * Math.cos(theta);
+        const y = r * Math.cos(phi) + 2;
+        const z = r * Math.sin(phi) * Math.sin(theta);
+
+        star.setAttribute('position', `${x.toFixed(2)} ${y.toFixed(2)} ${z.toFixed(2)}`);
+        star.setAttribute('radius', (0.06 + Math.random() * 0.1).toFixed(2));
+        const isWarm = Math.random() > 0.35;
+        star.setAttribute('material', `color: ${isWarm ? '#ffd54f' : '#ffffff'}; shader: flat`);
+        starfield.appendChild(star);
+      }
+
+      // 2. Populate Walkway Gold Stanchions & Glowing Orange Ropes
+      const stanchionsContainer = document.getElementById('walkway-stanchions');
+      const zPositions = [-4.5, -2.0, 0.5, 3.0, 5.5];
+      [-1.85, 1.85].forEach((xPos) => {
+        zPositions.forEach((zPos, idx) => {
+          // Gold Post
+          const post = document.createElement('a-cylinder');
+          post.setAttribute('position', `${xPos} 0.48 ${zPos}`);
+          post.setAttribute('radius', '0.045');
+          post.setAttribute('height', '0.96');
+          post.setAttribute('material', 'color: #ffd54f; metalness: 0.85; roughness: 0.2');
+          stanchionsContainer.appendChild(post);
+
+          // Finial Sphere
+          const topBall = document.createElement('a-sphere');
+          topBall.setAttribute('position', `${xPos} 0.98 ${zPos}`);
+          topBall.setAttribute('radius', '0.075');
+          topBall.setAttribute('material', 'color: #ff7b00; emissive: #ff6200; emissiveIntensity: 0.8');
+          stanchionsContainer.appendChild(topBall);
+
+          // Base Plate
+          const base = document.createElement('a-cylinder');
+          base.setAttribute('position', `${xPos} 0.02 ${zPos}`);
+          base.setAttribute('radius', '0.18');
+          base.setAttribute('height', '0.04');
+          base.setAttribute('material', 'color: #ffb300; metalness: 0.8');
+          stanchionsContainer.appendChild(base);
+
+          // Connecting Orange Rope to Next Post
+          if (idx < zPositions.length - 1) {
+            const nextZ = zPositions[idx + 1];
+            const midZ = (zPos + nextZ) / 2;
+            const rope = document.createElement('a-cylinder');
+            rope.setAttribute('position', `${xPos} 0.82 ${midZ}`);
+            rope.setAttribute('rotation', '90 0 0');
+            rope.setAttribute('radius', '0.025');
+            rope.setAttribute('height', Math.abs(nextZ - zPos));
+            rope.setAttribute('material', 'color: #ff6d00; emissive: #e65100; emissiveIntensity: 0.5');
+            stanchionsContainer.appendChild(rope);
+          }
+        });
+      });
+
+      // 3. Populate Floating 3D Graduation Caps (Mortarboards with Gold Tassels)
+      const capsContainer = document.getElementById('floating-caps-container');
+      const capCoords = [
+        { x: -5.5, y: 4.2, z: -6.0, scale: 1.1 },
+        { x: 5.5, y: 4.5, z: -6.0, scale: 1.1 },
+        { x: -3.8, y: 6.2, z: -4.2, scale: 0.9 },
+        { x: 3.8, y: 6.0, z: -4.2, scale: 0.9 },
+        { x: -6.8, y: 3.5, z: -1.5, scale: 1.0 },
+        { x: 6.8, y: 3.8, z: -1.5, scale: 1.0 },
+        { x: -4.5, y: 4.8, z: 2.5, scale: 0.85 },
+        { x: 4.5, y: 4.6, z: 2.5, scale: 0.85 }
+      ];
+
+      capCoords.forEach((c, i) => {
+        const capGroup = document.createElement('a-entity');
+        capGroup.setAttribute('position', `${c.x} ${c.y} ${c.z}`);
+        capGroup.setAttribute('scale', `${c.scale} ${c.scale} ${c.scale}`);
+        capGroup.setAttribute('floating-cap', `speed: ${1.2 + (i % 3) * 0.3}; amplitude: 0.32; rotSpeed: ${i % 2 === 0 ? 28 : -28}; phase: ${i * 1.1}`);
+
+        // Skullcap Cylinder
+        const skull = document.createElement('a-cylinder');
+        skull.setAttribute('radius', '0.36');
+        skull.setAttribute('height', '0.26');
+        skull.setAttribute('material', 'color: #161024; roughness: 0.4');
+        capGroup.appendChild(skull);
+
+        // Square Mortarboard Top
+        const board = document.createElement('a-box');
+        board.setAttribute('width', '0.95');
+        board.setAttribute('height', '0.05');
+        board.setAttribute('depth', '0.95');
+        board.setAttribute('position', '0 0.14 0');
+        board.setAttribute('rotation', '0 45 0');
+        board.setAttribute('material', 'color: #1f1733; roughness: 0.35');
+        capGroup.appendChild(board);
+
+        // Orange/Gold Trim Border on Mortarboard
+        const trim = document.createElement('a-box');
+        trim.setAttribute('width', '0.97');
+        trim.setAttribute('height', '0.02');
+        trim.setAttribute('depth', '0.97');
+        trim.setAttribute('position', '0 0.14 0');
+        trim.setAttribute('rotation', '0 45 0');
+        trim.setAttribute('material', 'color: #ff8f00; emissive: #ff6f00; emissiveIntensity: 0.5');
+        capGroup.appendChild(trim);
+
+        // Gold Button
+        const btn = document.createElement('a-sphere');
+        btn.setAttribute('radius', '0.05');
+        btn.setAttribute('position', '0 0.18 0');
+        btn.setAttribute('material', 'color: #ffd54f; metalness: 0.9');
+        capGroup.appendChild(btn);
+
+        // Hanging Gold/Orange Tassel
+        const tasselCord = document.createElement('a-cylinder');
+        tasselCord.setAttribute('radius', '0.015');
+        tasselCord.setAttribute('height', '0.46');
+        tasselCord.setAttribute('position', '0.32 0.02 0.32');
+        tasselCord.setAttribute('rotation', '0 0 -24');
+        tasselCord.setAttribute('material', 'color: #ffab00; emissive: #ff8f00; emissiveIntensity: 0.6');
+        capGroup.appendChild(tasselCord);
+
+        capsContainer.appendChild(capGroup);
+      });
+
+      // 4. Populate Festive Orange, Gold & White Balloon Clusters
+      const balloonsContainer = document.getElementById('balloons-container');
+      const balloonColors = ['#ff6a00', '#ff9800', '#ffd54f', '#ffffff', '#ff5722'];
+      const clusterCenters = [
+        { x: -5.2, z: -6.8 },
+        { x: 5.2, z: -6.8 },
+        { x: -4.2, z: -2.2 },
+        { x: 4.2, z: -2.2 },
+        { x: -4.2, z: 2.8 },
+        { x: 4.2, z: 2.8 },
+        { x: -7.5, z: -4.5 },
+        { x: 7.5, z: -4.5 }
+      ];
+
+      clusterCenters.forEach((center, cIdx) => {
+        for (let b = 0; b < 4; b++) {
+          const offsetX = (Math.random() - 0.5) * 1.1;
+          const offsetZ = (Math.random() - 0.5) * 1.1;
+          const heightY = 2.4 + b * 0.65 + Math.random() * 0.4;
+          const color = balloonColors[(cIdx + b) % balloonColors.length];
+
+          const balloonGroup = document.createElement('a-entity');
+          balloonGroup.setAttribute('position', `${center.x + offsetX} ${heightY} ${center.z + offsetZ}`);
+          balloonGroup.setAttribute('balloon-sway', `phase: ${cIdx * 0.8 + b}`);
+
+          // Balloon Sphere (slightly stretched vertically)
+          const sphere = document.createElement('a-sphere');
+          sphere.setAttribute('radius', '0.36');
+          sphere.setAttribute('scale', '1 1.18 1');
+          sphere.setAttribute('material', `color: ${color}; metalness: 0.35; roughness: 0.2`);
+          balloonGroup.appendChild(sphere);
+
+          // Balloon Knot
+          const knot = document.createElement('a-cone');
+          knot.setAttribute('radius-bottom', '0.05');
+          knot.setAttribute('radius-top', '0.01');
+          knot.setAttribute('height', '0.08');
+          knot.setAttribute('position', '0 -0.44 0');
+          knot.setAttribute('material', `color: ${color}`);
+          balloonGroup.appendChild(knot);
+
+          // String anchoring to ground
+          const string = document.createElement('a-cylinder');
+          string.setAttribute('radius', '0.006');
+          string.setAttribute('height', heightY);
+          string.setAttribute('position', `0 ${-heightY / 2 - 0.4} 0`);
+          string.setAttribute('material', 'color: #ffe082; opacity: 0.6; transparent: true');
+          balloonGroup.appendChild(string);
+
+          balloonsContainer.appendChild(balloonGroup);
+        }
+      });
+
+      // 5. Attach Continuous Confetti Rain Entity
+      const confettiEntity = document.getElementById('confetti-container');
+      confettiEntity.setAttribute('confetti-rain', '');
+
+      // 6. Interactive Fireworks Controls (Button & Scene Click)
+      const celebrateBtn = document.getElementById('celebrate-btn');
+      celebrateBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const fwComp = sceneEl.components['fireworks-controller'];
+        if (fwComp) {
+          fwComp.launchVolley();
+          showToast('🎆 Happy Graduation! Launching Orange & Gold Fireworks!');
+        }
+      });
+
+      // Trigger fireworks when clicking/tapping anywhere on the canvas
+      sceneEl.addEventListener('click', (evt) => {
+        // Avoid triggering when clicking HUD buttons
+        if (evt.target && evt.target.closest && evt.target.closest('#hud-overlay')) return;
+        const fwComp = sceneEl.components['fireworks-controller'];
+        if (fwComp) {
+          const rx = (Math.random() - 0.5) * 12;
+          const ry = 5.5 + Math.random() * 4.5;
+          const rz = -5.0 - Math.random() * 6;
+          fwComp.spawnFirework(rx, ry, rz);
+        }
+      });
+
+      // 7. Camera Preset Switcher (Walkway Entrance vs Close-up Stage Portrait View)
+      const camBtn = document.getElementById('camera-preset-btn');
+      const cameraRig = document.getElementById('camera-rig');
+      let isStageCloseUp = false;
+
+      camBtn.addEventListener('click', () => {
+        isStageCloseUp = !isStageCloseUp;
+        if (isStageCloseUp) {
+          cameraRig.setAttribute('position', '0 2.6 -1.5');
+          camBtn.innerHTML = '<span>🚶</span><span class="hidden sm:inline">Walkway View</span>';
+          showToast('🎥 Switched to Stage Portrait View');
+        } else {
+          cameraRig.setAttribute('position', '0 1.7 7.5');
+          camBtn.innerHTML = '<span>🎥</span><span class="hidden sm:inline">Stage View</span>';
+          showToast('🚶 Switched to Red/Orange Carpet Entrance');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
